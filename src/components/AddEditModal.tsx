@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { WatchItem, ItemType, ItemStatus, Genre } from '@/lib/types';
 import { Locale, t, GENRES, STATUSES, TYPES, getGenreLabel, getStatusLabel, getTypeLabel } from '@/lib/i18n';
+import { searchTmdb, getTmdbDetails, TmdbResult } from '@/lib/tmdb-service';
 
 interface AddEditModalProps {
   locale: Locale;
@@ -45,6 +46,14 @@ export default function AddEditModal({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
 
+  // TMDB search
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<TmdbResult[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchError, setSearchError] = useState(false);
+  const [importing, setImporting] = useState(false);
+
   const optionalLabel = locale === 'es' ? 'opcional' : 'optional';
 
   useEffect(() => {
@@ -80,7 +89,66 @@ export default function AddEditModal({
     setErrors({});
     setTouched({});
     setSaving(false);
+    setSearchQuery('');
+    setSearchResults([]);
+    setSearchOpen(false);
+    setSearchError(false);
   }, [item, isOpen]);
+
+  // Debounced TMDB search
+  useEffect(() => {
+    const q = searchQuery.trim();
+    if (q.length < 2) {
+      setSearchResults([]);
+      setSearchOpen(false);
+      return;
+    }
+    setSearching(true);
+    setSearchError(false);
+    const timer = setTimeout(async () => {
+      try {
+        const results = await searchTmdb(q, locale);
+        setSearchResults(results.slice(0, 8));
+        setSearchOpen(true);
+      } catch (err) {
+        console.error('TMDB search error:', err);
+        setSearchError(true);
+        setSearchResults([]);
+        setSearchOpen(true);
+      } finally {
+        setSearching(false);
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchQuery, locale]);
+
+  const handleSelectResult = async (result: TmdbResult) => {
+    setSearchOpen(false);
+    setSearchQuery(result.title);
+    setImporting(true);
+    try {
+      const details = await getTmdbDetails(result, locale);
+      setTitle(details.title);
+      setType(details.type);
+      setGenre(details.genre);
+      if (details.posterUrl) setImageUrl(details.posterUrl);
+      if (details.overview) setNotes(details.overview);
+      if (details.type === 'series') {
+        setTotalSeasons(details.totalSeasons || 1);
+        setCurrentSeason(1);
+        setCurrentEpisode(0);
+      } else {
+        setTotalMinutes(details.totalMinutes || 0);
+        setCurrentMinute(0);
+      }
+      setErrors({});
+    } catch (err) {
+      console.error('TMDB details error:', err);
+      setSearchError(true);
+    } finally {
+      setImporting(false);
+    }
+  };
 
   const validate = (): Record<string, string> => {
     const errs: Record<string, string> = {};
@@ -202,6 +270,75 @@ export default function AddEditModal({
 
         <form onSubmit={handleSubmit} noValidate>
           <div className="modal-body">
+            {/* TMDB auto-search — only when adding new */}
+            {!isEditing && (
+              <div className="form-group tmdb-search">
+                <label className="form-label" htmlFor="field-tmdb-search">
+                  🔍 {tr.searchLabel}
+                </label>
+                <div className="tmdb-search-wrap">
+                  <input
+                    id="field-tmdb-search"
+                    className="form-input"
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onFocus={() => {
+                      if (searchResults.length > 0) setSearchOpen(true);
+                    }}
+                    placeholder={tr.searchPlaceholder}
+                    autoComplete="off"
+                  />
+                  {(searching || importing) && <span className="tmdb-spinner" />}
+
+                  {searchOpen && (
+                    <div className="tmdb-dropdown">
+                      {searchError ? (
+                        <div className="tmdb-empty">{tr.searchError}</div>
+                      ) : searchResults.length === 0 ? (
+                        <div className="tmdb-empty">
+                          {searching ? tr.searchSearching : tr.searchNoResults}
+                        </div>
+                      ) : (
+                        searchResults.map((r) => (
+                          <button
+                            key={`${r.type}-${r.tmdbId}`}
+                            type="button"
+                            className="tmdb-result"
+                            onClick={() => handleSelectResult(r)}
+                          >
+                            {r.posterUrl ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                className="tmdb-result-poster"
+                                src={r.posterUrl}
+                                alt={r.title}
+                                loading="lazy"
+                              />
+                            ) : (
+                              <span className="tmdb-result-poster tmdb-result-noposter">
+                                {r.type === 'series' ? '📺' : '🎬'}
+                              </span>
+                            )}
+                            <span className="tmdb-result-info">
+                              <span className="tmdb-result-title">{r.title}</span>
+                              <span className="tmdb-result-meta">
+                                {getTypeLabel(r.type, locale)}
+                                {r.year ? ` · ${r.year}` : ''}
+                              </span>
+                            </span>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+                <span className="form-optional tmdb-hint">
+                  {tr.searchHint} — {tr.orManual}
+                </span>
+              </div>
+            )}
+
             {/* Title — REQUIRED */}
             <div className="form-group">
               <label className="form-label" htmlFor="field-title">

@@ -37,6 +37,15 @@ interface Translations {
   editItem: string;
   titlePlaceholder: string;
 
+  // TMDB search
+  searchLabel: string;
+  searchPlaceholder: string;
+  searchHint: string;
+  searchSearching: string;
+  searchNoResults: string;
+  searchError: string;
+  orManual: string;
+
   // Types
   series: string;
   movie: string;
@@ -111,6 +120,14 @@ const es: Translations = {
   addNew: 'Añadir nuevo',
   editItem: 'Editar',
   titlePlaceholder: 'Ej: Breaking Bad',
+
+  searchLabel: 'Buscar automáticamente',
+  searchPlaceholder: 'Escribe un título... (ej: Lost)',
+  searchHint: 'Busca en TMDB y rellena los datos por ti',
+  searchSearching: 'Buscando...',
+  searchNoResults: 'Sin resultados',
+  searchError: 'Error al buscar. Revisa la conexión.',
+  orManual: 'o rellénalo manualmente abajo',
 
   series: 'Serie',
   movie: 'Película',
@@ -192,6 +209,14 @@ const en: Translations = {
   addNew: 'Add new',
   editItem: 'Edit',
   titlePlaceholder: 'E.g. Breaking Bad',
+
+  searchLabel: 'Search automatically',
+  searchPlaceholder: 'Type a title... (e.g. Lost)',
+  searchHint: 'Searches TMDB and fills the data for you',
+  searchSearching: 'Searching...',
+  searchNoResults: 'No results',
+  searchError: 'Search failed. Check your connection.',
+  orManual: 'or fill it in manually below',
 
   series: 'Series',
   movie: 'Movie',

@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(curl -s \"https://api.themoviedb.org/3/search/multi?api_key=995ebbd6446bb47264291df40a513830&language=es-ES&query=Breaking%20Bad&page=1\")",
+      "Bash(grep -iE \"vercel|firebase|netlify|\\\\.json$\")"
     ]
   }
 }

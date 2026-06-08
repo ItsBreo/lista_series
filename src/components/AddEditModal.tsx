@@ -9,7 +9,7 @@ interface AddEditModalProps {
   item?: WatchItem | null;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: Partial<WatchItem>) => void;
+  onSave: (data: Partial<WatchItem>) => Promise<boolean>;
 }
 
 export default function AddEditModal({
@@ -30,6 +30,7 @@ export default function AddEditModal({
   const [notes, setNotes] = useState('');
   const [addedBy, setAddedBy] = useState('');
   const [rating, setRating] = useState(0);
+  const [saving, setSaving] = useState(false);
 
   // Series fields
   const [totalSeasons, setTotalSeasons] = useState(1);
@@ -39,6 +40,12 @@ export default function AddEditModal({
   // Movie fields
   const [totalMinutes, setTotalMinutes] = useState(0);
   const [currentMinute, setCurrentMinute] = useState(0);
+
+  // Validation
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+
+  const optionalLabel = locale === 'es' ? 'opcional' : 'optional';
 
   useEffect(() => {
     if (item) {
@@ -56,7 +63,6 @@ export default function AddEditModal({
       setTotalMinutes(item.totalMinutes || 0);
       setCurrentMinute(item.currentMinute || 0);
     } else {
-      // Reset form
       setTitle('');
       setType('series');
       setGenre('drama');
@@ -71,11 +77,76 @@ export default function AddEditModal({
       setTotalMinutes(0);
       setCurrentMinute(0);
     }
+    setErrors({});
+    setTouched({});
+    setSaving(false);
   }, [item, isOpen]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const validate = (): Record<string, string> => {
+    const errs: Record<string, string> = {};
+
+    if (!title.trim()) {
+      errs.title = locale === 'es' ? 'El título es obligatorio' : 'Title is required';
+    }
+
+    if (type === 'series' && totalSeasons < 1) {
+      errs.totalSeasons = locale === 'es' ? 'Mínimo 1 temporada' : 'Minimum 1 season';
+    }
+
+    if (type === 'series' && currentSeason > totalSeasons) {
+      errs.currentSeason =
+        locale === 'es'
+          ? `No puede ser mayor que ${totalSeasons}`
+          : `Cannot be greater than ${totalSeasons}`;
+    }
+
+    if (type === 'movie' && totalMinutes > 0 && currentMinute > totalMinutes) {
+      errs.currentMinute =
+        locale === 'es'
+          ? `No puede ser mayor que ${totalMinutes}`
+          : `Cannot be greater than ${totalMinutes}`;
+    }
+
+    if (imageUrl.trim() && !isValidUrl(imageUrl.trim())) {
+      errs.imageUrl = locale === 'es' ? 'URL no válida' : 'Invalid URL';
+    }
+
+    return errs;
+  };
+
+  const isValidUrl = (url: string): boolean => {
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const handleBlur = (field: string) => {
+    setTouched((prev) => ({ ...prev, [field]: true }));
+    const errs = validate();
+    setErrors(errs);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) return;
+
+    // Mark all as touched
+    setTouched({
+      title: true,
+      totalSeasons: true,
+      currentSeason: true,
+      currentMinute: true,
+      imageUrl: true,
+    });
+
+    const errs = validate();
+    setErrors(errs);
+
+    if (Object.keys(errs).length > 0) return;
+
+    setSaving(true);
 
     const data: Partial<WatchItem> = {
       title: title.trim(),
@@ -101,10 +172,19 @@ export default function AddEditModal({
       data.id = item.id;
     }
 
-    onSave(data);
+    const success = await onSave(data);
+    setSaving(false);
+    if (!success) {
+      // Error is handled by parent via toast
+    }
   };
 
   if (!isOpen) return null;
+
+  const getFieldClass = (field: string): string => {
+    if (touched[field] && errors[field]) return 'form-input form-input-error';
+    return 'form-input';
+  };
 
   return (
     <div className="modal-overlay" onClick={onClose} id="modal-overlay">
@@ -120,43 +200,52 @@ export default function AddEditModal({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} noValidate>
           <div className="modal-body">
-            {/* Title */}
+            {/* Title — REQUIRED */}
             <div className="form-group">
-              <label className="form-label" htmlFor="field-title">{tr.title} *</label>
+              <label className="form-label" htmlFor="field-title">
+                {tr.title} <span className="form-required">*</span>
+              </label>
               <input
                 id="field-title"
-                className="form-input"
+                className={getFieldClass('title')}
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
+                onBlur={() => handleBlur('title')}
                 placeholder={tr.titlePlaceholder}
-                required
                 autoFocus
               />
+              {touched.title && errors.title && (
+                <span className="form-error">{errors.title}</span>
+              )}
             </div>
 
-            {/* Type and Genre */}
+            {/* Type and Genre — REQUIRED (have defaults) */}
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label" htmlFor="field-type">{tr.type}</label>
+                <label className="form-label" htmlFor="field-type">
+                  {tr.type} <span className="form-required">*</span>
+                </label>
                 <select
                   id="field-type"
                   className="form-select"
                   value={type}
                   onChange={(e) => setType(e.target.value as ItemType)}
                 >
-                  {TYPES.map((t) => (
-                    <option key={t} value={t}>
-                      {getTypeLabel(t, locale)}
+                  {TYPES.map((tp) => (
+                    <option key={tp} value={tp}>
+                      {getTypeLabel(tp, locale)}
                     </option>
                   ))}
                 </select>
               </div>
 
               <div className="form-group">
-                <label className="form-label" htmlFor="field-genre">{tr.genre}</label>
+                <label className="form-label" htmlFor="field-genre">
+                  {tr.genre} <span className="form-required">*</span>
+                </label>
                 <select
                   id="field-genre"
                   className="form-select"
@@ -172,9 +261,11 @@ export default function AddEditModal({
               </div>
             </div>
 
-            {/* Status */}
+            {/* Status — REQUIRED (has default) */}
             <div className="form-group">
-              <label className="form-label" htmlFor="field-status">{tr.status}</label>
+              <label className="form-label" htmlFor="field-status">
+                {tr.status} <span className="form-required">*</span>
+              </label>
               <select
                 id="field-status"
                 className="form-select"
@@ -189,39 +280,47 @@ export default function AddEditModal({
               </select>
             </div>
 
-            {/* Series-specific fields */}
+            {/* Series-specific fields — REQUIRED when type=series */}
             {type === 'series' && (
               <div className="form-row-3">
                 <div className="form-group">
                   <label className="form-label" htmlFor="field-total-seasons">
-                    {tr.totalSeasons}
+                    {tr.totalSeasons} <span className="form-required">*</span>
                   </label>
                   <input
                     id="field-total-seasons"
-                    className="form-input"
+                    className={getFieldClass('totalSeasons')}
                     type="number"
                     min={1}
                     value={totalSeasons}
                     onChange={(e) => setTotalSeasons(parseInt(e.target.value) || 1)}
+                    onBlur={() => handleBlur('totalSeasons')}
                   />
+                  {touched.totalSeasons && errors.totalSeasons && (
+                    <span className="form-error">{errors.totalSeasons}</span>
+                  )}
                 </div>
                 <div className="form-group">
                   <label className="form-label" htmlFor="field-current-season">
-                    {tr.currentSeason}
+                    {tr.currentSeason} <span className="form-required">*</span>
                   </label>
                   <input
                     id="field-current-season"
-                    className="form-input"
+                    className={getFieldClass('currentSeason')}
                     type="number"
                     min={1}
                     max={totalSeasons}
                     value={currentSeason}
                     onChange={(e) => setCurrentSeason(parseInt(e.target.value) || 1)}
+                    onBlur={() => handleBlur('currentSeason')}
                   />
+                  {touched.currentSeason && errors.currentSeason && (
+                    <span className="form-error">{errors.currentSeason}</span>
+                  )}
                 </div>
                 <div className="form-group">
                   <label className="form-label" htmlFor="field-current-episode">
-                    {tr.currentEpisode}
+                    {tr.currentEpisode} <span className="form-required">*</span>
                   </label>
                   <input
                     id="field-current-episode"
@@ -240,7 +339,7 @@ export default function AddEditModal({
               <div className="form-row">
                 <div className="form-group">
                   <label className="form-label" htmlFor="field-total-minutes">
-                    {tr.totalMinutes}
+                    {tr.totalMinutes} <span className="form-required">*</span>
                   </label>
                   <input
                     id="field-total-minutes"
@@ -253,25 +352,33 @@ export default function AddEditModal({
                 </div>
                 <div className="form-group">
                   <label className="form-label" htmlFor="field-current-minute">
-                    {tr.currentMinute}
+                    {tr.currentMinute}{' '}
+                    <span className="form-optional">({optionalLabel})</span>
                   </label>
                   <input
                     id="field-current-minute"
-                    className="form-input"
+                    className={getFieldClass('currentMinute')}
                     type="number"
                     min={0}
                     max={totalMinutes}
                     value={currentMinute}
                     onChange={(e) => setCurrentMinute(parseInt(e.target.value) || 0)}
+                    onBlur={() => handleBlur('currentMinute')}
                   />
+                  {touched.currentMinute && errors.currentMinute && (
+                    <span className="form-error">{errors.currentMinute}</span>
+                  )}
                 </div>
               </div>
             )}
 
-            {/* Rating (only when completed) */}
+            {/* Rating (only when completed) — OPTIONAL */}
             {status === 'completed' && (
               <div className="form-group">
-                <label className="form-label">{tr.rating}</label>
+                <label className="form-label">
+                  {tr.rating}{' '}
+                  <span className="form-optional">({optionalLabel})</span>
+                </label>
                 <div className="rating">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <span
@@ -289,25 +396,31 @@ export default function AddEditModal({
               </div>
             )}
 
-            {/* Image URL */}
+            {/* Image URL — OPTIONAL */}
             <div className="form-group">
               <label className="form-label" htmlFor="field-image-url">
-                {tr.imageUrl}
+                {tr.imageUrl}{' '}
+                <span className="form-optional">({optionalLabel})</span>
               </label>
               <input
                 id="field-image-url"
-                className="form-input"
+                className={getFieldClass('imageUrl')}
                 type="url"
                 value={imageUrl}
                 onChange={(e) => setImageUrl(e.target.value)}
+                onBlur={() => handleBlur('imageUrl')}
                 placeholder={tr.imageUrlPlaceholder}
               />
+              {touched.imageUrl && errors.imageUrl && (
+                <span className="form-error">{errors.imageUrl}</span>
+              )}
             </div>
 
-            {/* Added by */}
+            {/* Added by — OPTIONAL */}
             <div className="form-group">
               <label className="form-label" htmlFor="field-added-by">
-                {tr.addedBy}
+                {tr.addedBy}{' '}
+                <span className="form-optional">({optionalLabel})</span>
               </label>
               <input
                 id="field-added-by"
@@ -319,9 +432,12 @@ export default function AddEditModal({
               />
             </div>
 
-            {/* Notes */}
+            {/* Notes — OPTIONAL */}
             <div className="form-group">
-              <label className="form-label" htmlFor="field-notes">{tr.notes}</label>
+              <label className="form-label" htmlFor="field-notes">
+                {tr.notes}{' '}
+                <span className="form-optional">({optionalLabel})</span>
+              </label>
               <textarea
                 id="field-notes"
                 className="form-textarea"
@@ -339,11 +455,24 @@ export default function AddEditModal({
               className="btn btn-secondary"
               onClick={onClose}
               id="modal-cancel-btn"
+              disabled={saving}
             >
               {tr.cancel}
             </button>
-            <button type="submit" className="btn btn-primary" id="modal-save-btn">
-              {tr.save}
+            <button
+              type="submit"
+              className="btn btn-primary"
+              id="modal-save-btn"
+              disabled={saving}
+            >
+              {saving ? (
+                <span className="btn-loading">
+                  <span className="btn-spinner" />
+                  {locale === 'es' ? 'Guardando...' : 'Saving...'}
+                </span>
+              ) : (
+                tr.save
+              )}
             </button>
           </div>
         </form>

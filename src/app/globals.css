@@ -966,12 +966,82 @@ body::before {
 }
 
 /* ========================================
-   Toast / Notification (bonus)
+   Form Validation
+   ======================================== */
+.form-required {
+  color: #f87171;
+  font-weight: 600;
+}
+
+.form-optional {
+  color: var(--text-muted);
+  font-weight: 400;
+  font-size: 0.7rem;
+}
+
+.form-error {
+  font-size: 0.75rem;
+  color: #f87171;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  animation: shakeIn 0.3s ease;
+}
+
+.form-error::before {
+  content: '⚠';
+  font-size: 0.7rem;
+}
+
+@keyframes shakeIn {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+.form-input-error {
+  border-color: #f87171 !important;
+  box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.12) !important;
+}
+
+.form-input-error:focus {
+  border-color: #f87171 !important;
+  box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.2) !important;
+}
+
+/* ========================================
+   Button Loading
+   ======================================== */
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-loading {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+/* ========================================
+   Toast / Notification
    ======================================== */
 .toast {
   position: fixed;
   bottom: var(--space-lg);
   right: var(--space-lg);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
   background: var(--bg-elevated);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
@@ -981,16 +1051,47 @@ body::before {
   box-shadow: var(--shadow-lg);
   z-index: 2000;
   animation: toastIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  max-width: 360px;
+}
+
+.toast-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.toast.toast-success {
+  border-color: rgba(16, 185, 129, 0.3);
+  background: linear-gradient(135deg, var(--bg-elevated), rgba(16, 185, 129, 0.06));
+}
+
+.toast.toast-error {
+  border-color: rgba(239, 68, 68, 0.3);
+  background: linear-gradient(135deg, var(--bg-elevated), rgba(239, 68, 68, 0.06));
+}
+
+.toast-exit {
+  animation: toastOut 0.3s ease forwards;
 }
 
 @keyframes toastIn {
   from {
     opacity: 0;
-    transform: translateY(16px);
+    transform: translateY(16px) scale(0.95);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes toastOut {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(16px) scale(0.95);
   }
 }
 
@@ -1048,4 +1149,11 @@ body::before {
   .stats-bar {
     gap: var(--space-sm);
   }
+
+  .toast {
+    left: var(--space-md);
+    right: var(--space-md);
+    max-width: none;
+  }
 }
+

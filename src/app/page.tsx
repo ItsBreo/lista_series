@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { WatchItem, ItemStatus, Genre } from '@/lib/types';
-import { Locale, t, getStatusLabel } from '@/lib/i18n';
+import { Locale, t } from '@/lib/i18n';
 import {
   subscribeToWatchlist,
   addItem,
@@ -14,6 +14,13 @@ import AddEditModal from '@/components/AddEditModal';
 import FilterBar from '@/components/FilterBar';
 import EmptyState from '@/components/EmptyState';
 import LanguageToggle from '@/components/LanguageToggle';
+
+interface Toast {
+  id: number;
+  message: string;
+  type: 'success' | 'error';
+  exiting?: boolean;
+}
 
 export default function Home() {
   const [items, setItems] = useState<WatchItem[]>([]);
@@ -31,7 +38,28 @@ export default function Home() {
   // Delete confirm
   const [deletingItem, setDeletingItem] = useState<WatchItem | null>(null);
 
+  // Toasts
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const toastIdRef = useRef(0);
+
   const tr = t(locale);
+
+  const showToast = useCallback((message: string, type: 'success' | 'error') => {
+    const id = ++toastIdRef.current;
+    setToasts((prev) => [...prev, { id, message, type }]);
+
+    // Start exit animation after 2.5s
+    setTimeout(() => {
+      setToasts((prev) =>
+        prev.map((t) => (t.id === id ? { ...t, exiting: true } : t))
+      );
+    }, 2500);
+
+    // Remove after exit animation
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 2800);
+  }, []);
 
   // Load locale from localStorage
   useEffect(() => {
@@ -51,9 +79,16 @@ export default function Home() {
       (error) => {
         console.error('Firestore error:', error);
         setLoading(false);
+        showToast(
+          locale === 'es'
+            ? 'Error al conectar con la base de datos'
+            : 'Error connecting to database',
+          'error'
+        );
       }
     );
     return () => unsubscribe();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleLocaleChange = (newLocale: Locale) => {
@@ -92,19 +127,35 @@ export default function Home() {
     setEditingItem(null);
   }, []);
 
-  const handleSave = async (data: Partial<WatchItem>) => {
+  const handleSave = async (data: Partial<WatchItem>): Promise<boolean> => {
     try {
       if (data.id) {
-        // Editing
         const { id, ...updateData } = data;
         await updateItem(id, updateData);
+        showToast(
+          locale === 'es' ? '✏️ Actualizado correctamente' : '✏️ Updated successfully',
+          'success'
+        );
       } else {
-        // Adding
         await addItem(data as WatchItem);
+        showToast(
+          locale === 'es'
+            ? `🎬 "${data.title}" añadido a la lista`
+            : `🎬 "${data.title}" added to the list`,
+          'success'
+        );
       }
       handleCloseModal();
+      return true;
     } catch (error) {
       console.error('Error saving item:', error);
+      showToast(
+        locale === 'es'
+          ? 'Error al guardar. Inténtalo de nuevo.'
+          : 'Error saving. Please try again.',
+        'error'
+      );
+      return false;
     }
   };
 
@@ -116,10 +167,23 @@ export default function Home() {
   const handleConfirmDelete = async () => {
     if (!deletingItem) return;
     try {
+      const title = deletingItem.title;
       await deleteItem(deletingItem.id);
       setDeletingItem(null);
+      showToast(
+        locale === 'es'
+          ? `🗑️ "${title}" eliminado`
+          : `🗑️ "${title}" deleted`,
+        'success'
+      );
     } catch (error) {
       console.error('Error deleting item:', error);
+      showToast(
+        locale === 'es'
+          ? 'Error al eliminar. Inténtalo de nuevo.'
+          : 'Error deleting. Please try again.',
+        'error'
+      );
     }
   };
 
@@ -254,6 +318,21 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      {/* Toast Notifications */}
+      {toasts.map((toast) => (
+        <div
+          key={toast.id}
+          className={`toast toast-${toast.type}${toast.exiting ? ' toast-exit' : ''}`}
+          style={{ bottom: `${1.5 + toasts.indexOf(toast) * 3.5}rem` }}
+          id={`toast-${toast.id}`}
+        >
+          <span className="toast-icon">
+            {toast.type === 'success' ? '✅' : '❌'}
+          </span>
+          {toast.message}
+        </div>
+      ))}
     </main>
   );
 }

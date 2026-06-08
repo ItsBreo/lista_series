@@ -15,6 +15,13 @@ import { WatchItem, WatchItemFormData } from './types';
 
 const COLLECTION_NAME = 'watchlist';
 
+// Firestore does not accept undefined values — strip them
+function cleanData(obj: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(obj).filter(([, v]) => v !== undefined)
+  );
+}
+
 export function subscribeToWatchlist(
   callback: (items: WatchItem[]) => void,
   onError?: (error: Error) => void
@@ -43,7 +50,7 @@ export function subscribeToWatchlist(
 export async function addItem(data: WatchItemFormData): Promise<string> {
   const now = Timestamp.now();
   const docRef = await addDoc(collection(db, COLLECTION_NAME), {
-    ...data,
+    ...cleanData(data as unknown as Record<string, unknown>),
     createdAt: now,
     updatedAt: now,
   });
@@ -56,7 +63,7 @@ export async function updateItem(
 ): Promise<void> {
   const docRef = doc(db, COLLECTION_NAME, id);
   await updateDoc(docRef, {
-    ...data,
+    ...cleanData(data as unknown as Record<string, unknown>),
     updatedAt: Timestamp.now(),
   });
 }

@@ -11,6 +11,7 @@ import {
 } from '@/lib/watchlist-service';
 import WatchCard from '@/components/WatchCard';
 import AddEditModal from '@/components/AddEditModal';
+import DetailModal from '@/components/DetailModal';
 import FilterBar from '@/components/FilterBar';
 import EmptyState from '@/components/EmptyState';
 import LanguageToggle from '@/components/LanguageToggle';
@@ -33,6 +34,7 @@ export default function Home() {
   // Filters
   const [statusFilter, setStatusFilter] = useState<ItemStatus | 'all'>('all');
   const [genreFilter, setGenreFilter] = useState<Genre | 'all'>('all');
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -40,6 +42,9 @@ export default function Home() {
   // Modal
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<WatchItem | null>(null);
+
+  // Detail view
+  const [detailItem, setDetailItem] = useState<WatchItem | null>(null);
 
   // Delete confirm
   const [deletingItem, setDeletingItem] = useState<WatchItem | null>(null);
@@ -103,9 +108,12 @@ export default function Home() {
   };
 
   // Filter items
+  const normalizedSearch = searchTerm.trim().toLowerCase();
   const filteredItems = items.filter((item) => {
     if (statusFilter !== 'all' && item.status !== statusFilter) return false;
     if (genreFilter !== 'all' && item.genre !== genreFilter) return false;
+    if (normalizedSearch && !item.title.toLowerCase().includes(normalizedSearch))
+      return false;
     return true;
   });
 
@@ -117,10 +125,10 @@ export default function Home() {
     page * PAGE_SIZE
   );
 
-  // Back to the first page whenever the filters change
+  // Back to the first page whenever the filters or search change
   useEffect(() => {
     setCurrentPage(1);
-  }, [statusFilter, genreFilter]);
+  }, [statusFilter, genreFilter, searchTerm]);
 
   // Stats
   const stats = {
@@ -137,6 +145,20 @@ export default function Home() {
   }, []);
 
   const handleOpenEdit = useCallback((item: WatchItem) => {
+    setEditingItem(item);
+    setModalOpen(true);
+  }, []);
+
+  const handleOpenDetail = useCallback((item: WatchItem) => {
+    setDetailItem(item);
+  }, []);
+
+  const handleCloseDetail = useCallback(() => {
+    setDetailItem(null);
+  }, []);
+
+  const handleEditFromDetail = useCallback((item: WatchItem) => {
+    setDetailItem(null);
     setEditingItem(item);
     setModalOpen(true);
   }, []);
@@ -299,8 +321,10 @@ export default function Home() {
           locale={locale}
           activeStatus={statusFilter}
           activeGenre={genreFilter}
+          searchTerm={searchTerm}
           onStatusChange={setStatusFilter}
           onGenreChange={setGenreFilter}
+          onSearchChange={setSearchTerm}
         />
       )}
 
@@ -330,6 +354,7 @@ export default function Home() {
                 locale={locale}
                 onEdit={handleOpenEdit}
                 onDelete={handleRequestDelete}
+                onOpenDetail={handleOpenDetail}
                 style={{ animationDelay: `${index * 0.05}s` }}
               />
             ))}
@@ -372,6 +397,18 @@ export default function Home() {
           )}
         </>
       )}
+
+      {/* Detail Modal — always show the freshest version of the item */}
+      <DetailModal
+        locale={locale}
+        item={
+          detailItem
+            ? items.find((i) => i.id === detailItem.id) ?? detailItem
+            : null
+        }
+        onClose={handleCloseDetail}
+        onEdit={handleEditFromDetail}
+      />
 
       {/* Add/Edit Modal */}
       <AddEditModal

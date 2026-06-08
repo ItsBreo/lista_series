@@ -10,10 +10,11 @@ interface WatchCardProps {
   locale: Locale;
   onEdit: (item: WatchItem) => void;
   onDelete: (item: WatchItem) => void;
+  onOpenDetail: (item: WatchItem) => void;
   style?: React.CSSProperties;
 }
 
-export default function WatchCard({ item, locale, onEdit, onDelete, style }: WatchCardProps) {
+export default function WatchCard({ item, locale, onEdit, onDelete, onOpenDetail, style }: WatchCardProps) {
   const tr = t(locale);
 
   // Calculate progress
@@ -92,7 +93,16 @@ export default function WatchCard({ item, locale, onEdit, onDelete, style }: Wat
   return (
     <div className="watch-card" style={style} id={`card-${item.id}`}>
       {/* Poster */}
-      <div className="card-poster">
+      <div
+        className="card-poster card-poster-clickable"
+        onClick={() => onOpenDetail(item)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') onOpenDetail(item);
+        }}
+        title={item.title}
+      >
         {item.imageUrl ? (
           <img src={item.imageUrl} alt={item.title} loading="lazy" />
         ) : (
@@ -106,7 +116,13 @@ export default function WatchCard({ item, locale, onEdit, onDelete, style }: Wat
       <div className="card-content">
         {/* Header */}
         <div className="card-header">
-          <h3 className="card-title">{item.title}</h3>
+          <h3
+            className="card-title card-title-clickable"
+            onClick={() => onOpenDetail(item)}
+            title={item.title}
+          >
+            {item.title}
+          </h3>
         </div>
 
         {/* Meta badges */}

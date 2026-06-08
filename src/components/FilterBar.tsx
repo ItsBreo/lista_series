@@ -7,21 +7,52 @@ interface FilterBarProps {
   locale: Locale;
   activeStatus: ItemStatus | 'all';
   activeGenre: Genre | 'all';
+  searchTerm: string;
   onStatusChange: (status: ItemStatus | 'all') => void;
   onGenreChange: (genre: Genre | 'all') => void;
+  onSearchChange: (value: string) => void;
 }
 
 export default function FilterBar({
   locale,
   activeStatus,
   activeGenre,
+  searchTerm,
   onStatusChange,
   onGenreChange,
+  onSearchChange,
 }: FilterBarProps) {
   const tr = t(locale);
 
   return (
     <div className="filter-bar" id="filter-bar">
+      {/* List search */}
+      <div className="filter-search">
+        <span className="filter-search-icon">🔍</span>
+        <input
+          className="filter-search-input"
+          type="text"
+          value={searchTerm}
+          onChange={(e) => onSearchChange(e.target.value)}
+          placeholder={tr.searchListPlaceholder}
+          id="filter-search"
+          autoComplete="off"
+        />
+        {searchTerm && (
+          <button
+            className="filter-search-clear"
+            onClick={() => onSearchChange('')}
+            id="filter-search-clear"
+            aria-label={tr.close}
+            type="button"
+          >
+            ✕
+          </button>
+        )}
+      </div>
+
+      <div className="filter-separator" />
+
       {/* Status filter chips */}
       <div className="filter-group">
         <button

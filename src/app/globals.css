@@ -345,6 +345,66 @@ body::before {
   flex-wrap: wrap;
 }
 
+/* List search */
+.filter-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1 1 220px;
+  min-width: 180px;
+  max-width: 360px;
+}
+
+.filter-search-icon {
+  position: absolute;
+  left: 12px;
+  font-size: 0.85rem;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.filter-search-input {
+  width: 100%;
+  padding: 0.5rem 2rem 0.5rem 2.2rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  transition: border-color var(--transition-fast);
+}
+
+.filter-search-input::placeholder {
+  color: var(--text-muted);
+}
+
+.filter-search-input:focus {
+  outline: none;
+  border-color: var(--border-accent);
+}
+
+.filter-search-clear {
+  position: absolute;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 50%;
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.filter-search-clear:hover {
+  color: var(--text-primary);
+}
+
 .filter-chip {
   display: inline-flex;
   align-items: center;
@@ -418,18 +478,18 @@ body::before {
    Watch Card
    ======================================== */
 .cards-grid {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-lg);
 }
 
 .watch-card {
   display: flex;
-  gap: var(--space-md);
-  padding: var(--space-lg);
+  flex-direction: column;
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
+  overflow: hidden;
   transition: all var(--transition-base);
   animation: cardIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
@@ -454,9 +514,8 @@ body::before {
 
 .card-poster {
   flex-shrink: 0;
-  width: 80px;
-  height: 110px;
-  border-radius: var(--radius-md);
+  width: 100%;
+  aspect-ratio: 2 / 3;
   overflow: hidden;
   background: var(--bg-elevated);
   display: flex;
@@ -468,6 +527,24 @@ body::before {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform var(--transition-base);
+}
+
+.card-poster-clickable {
+  cursor: pointer;
+}
+
+.card-poster-clickable:hover img {
+  transform: scale(1.04);
+}
+
+.card-title-clickable {
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.card-title-clickable:hover {
+  color: var(--accent-400);
 }
 
 .card-poster-placeholder {
@@ -481,6 +558,7 @@ body::before {
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
+  padding: var(--space-md);
 }
 
 .card-header {
@@ -1216,6 +1294,112 @@ body::before {
    Responsive
    ======================================== */
 /* ========================================
+   Detail Modal
+   ======================================== */
+.detail-modal {
+  position: relative;
+  max-width: 580px;
+}
+
+.detail-close {
+  position: absolute;
+  top: var(--space-md);
+  right: var(--space-md);
+  z-index: 2;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.detail-hero {
+  display: flex;
+  gap: var(--space-lg);
+  padding: var(--space-xl);
+}
+
+.detail-poster {
+  flex-shrink: 0;
+  width: 150px;
+  aspect-ratio: 2 / 3;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--bg-elevated);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.detail-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.detail-poster-placeholder {
+  font-size: 3rem;
+  opacity: 0.3;
+}
+
+.detail-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.detail-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.25;
+  margin: 0;
+  padding-right: var(--space-xl);
+}
+
+.detail-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-xs);
+}
+
+.detail-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+  font-size: 0.9rem;
+}
+
+.detail-label {
+  flex-shrink: 0;
+  min-width: 90px;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+
+.detail-value {
+  color: var(--text-primary);
+}
+
+.detail-notes {
+  padding: 0 var(--space-xl) var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.detail-notes-text {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ========================================
    Pagination
    ======================================== */
 .pagination {
@@ -1281,14 +1465,9 @@ body::before {
     font-size: 1.4rem;
   }
 
-  .watch-card {
-    flex-direction: column;
-    padding: var(--space-md);
-  }
-
-  .card-poster {
-    width: 100%;
-    height: 160px;
+  .cards-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: var(--space-md);
   }
 
   .filter-bar {
@@ -1297,6 +1476,29 @@ body::before {
 
   .filter-separator {
     display: none;
+  }
+
+  .filter-search {
+    flex-basis: 100%;
+    max-width: none;
+  }
+
+  .detail-hero {
+    flex-direction: column;
+    padding: var(--space-lg);
+  }
+
+  .detail-poster {
+    width: 140px;
+    align-self: center;
+  }
+
+  .detail-title {
+    font-size: 1.25rem;
+  }
+
+  .detail-notes {
+    padding: 0 var(--space-lg) var(--space-lg);
   }
 
   .form-row,

@@ -45,6 +45,7 @@ interface Translations {
   searchNoResults: string;
   searchError: string;
   orManual: string;
+  searchListPlaceholder: string;
 
   // Types
   series: string;
@@ -128,6 +129,7 @@ const es: Translations = {
   searchNoResults: 'Sin resultados',
   searchError: 'Error al buscar. Revisa la conexión.',
   orManual: 'o rellénalo manualmente abajo',
+  searchListPlaceholder: 'Buscar en tu lista...',
 
   series: 'Serie',
   movie: 'Película',
@@ -217,6 +219,7 @@ const en: Translations = {
   searchNoResults: 'No results',
   searchError: 'Search failed. Check your connection.',
   orManual: 'or fill it in manually below',
+  searchListPlaceholder: 'Search your list...',
 
   series: 'Series',
   movie: 'Movie',

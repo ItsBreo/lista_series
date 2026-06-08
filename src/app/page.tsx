@@ -22,6 +22,9 @@ interface Toast {
   exiting?: boolean;
 }
 
+// Cuántas tarjetas se muestran por página
+const PAGE_SIZE = 12;
+
 export default function Home() {
   const [items, setItems] = useState<WatchItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,6 +33,9 @@ export default function Home() {
   // Filters
   const [statusFilter, setStatusFilter] = useState<ItemStatus | 'all'>('all');
   const [genreFilter, setGenreFilter] = useState<Genre | 'all'>('all');
+
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Modal
   const [modalOpen, setModalOpen] = useState(false);
@@ -102,6 +108,19 @@ export default function Home() {
     if (genreFilter !== 'all' && item.genre !== genreFilter) return false;
     return true;
   });
+
+  // Client-side pagination
+  const totalPages = Math.max(1, Math.ceil(filteredItems.length / PAGE_SIZE));
+  const page = Math.min(currentPage, totalPages); // clamp (e.g. after deletes)
+  const paginatedItems = filteredItems.slice(
+    (page - 1) * PAGE_SIZE,
+    page * PAGE_SIZE
+  );
+
+  // Back to the first page whenever the filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, genreFilter]);
 
   // Stats
   const stats = {
@@ -302,18 +321,56 @@ export default function Home() {
           </p>
         </div>
       ) : (
-        <div className="cards-grid" id="cards-grid">
-          {filteredItems.map((item, index) => (
-            <WatchCard
-              key={item.id}
-              item={item}
-              locale={locale}
-              onEdit={handleOpenEdit}
-              onDelete={handleRequestDelete}
-              style={{ animationDelay: `${index * 0.05}s` }}
-            />
-          ))}
-        </div>
+        <>
+          <div className="cards-grid" id="cards-grid">
+            {paginatedItems.map((item, index) => (
+              <WatchCard
+                key={item.id}
+                item={item}
+                locale={locale}
+                onEdit={handleOpenEdit}
+                onDelete={handleRequestDelete}
+                style={{ animationDelay: `${index * 0.05}s` }}
+              />
+            ))}
+          </div>
+
+          {totalPages > 1 && (
+            <nav className="pagination" id="pagination" aria-label="Paginación">
+              <button
+                className="pagination-btn"
+                onClick={() => setCurrentPage(page - 1)}
+                disabled={page === 1}
+                id="page-prev"
+                aria-label={locale === 'es' ? 'Anterior' : 'Previous'}
+              >
+                ‹
+              </button>
+
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
+                <button
+                  key={n}
+                  className={`pagination-btn${n === page ? ' active' : ''}`}
+                  onClick={() => setCurrentPage(n)}
+                  id={`page-${n}`}
+                  aria-current={n === page ? 'page' : undefined}
+                >
+                  {n}
+                </button>
+              ))}
+
+              <button
+                className="pagination-btn"
+                onClick={() => setCurrentPage(page + 1)}
+                disabled={page === totalPages}
+                id="page-next"
+                aria-label={locale === 'es' ? 'Siguiente' : 'Next'}
+              >
+                ›
+              </button>
+            </nav>
+          )}
+        </>
       )}
 
       {/* Add/Edit Modal */}

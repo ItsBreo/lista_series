@@ -128,26 +128,65 @@ export default function Home() {
   }, []);
 
   const handleSave = async (data: Partial<WatchItem>): Promise<boolean> => {
+    const isUpdate = !!data.id;
+    const started = performance.now();
+
+    // Firestore applies the write to its local cache immediately, but the
+    // returned promise only resolves once the SERVER acknowledges it.
+    let writePromise: Promise<unknown>;
+    if (isUpdate) {
+      const { id, ...updateData } = data;
+      writePromise = updateItem(id as string, updateData);
+    } else {
+      writePromise = addItem(data as WatchItem);
+    }
+
+    // Diagnostics — shows in the browser console how long the real
+    // server confirmation takes (or the exact error if it fails).
+    writePromise
+      .then(() =>
+        console.log(
+          `[save] confirmado por el servidor en ${Math.round(
+            performance.now() - started
+          )} ms`
+        )
+      )
+      .catch((e) => console.error('[save] la escritura falló:', e));
+
     try {
-      if (data.id) {
-        const { id, ...updateData } = data;
-        await updateItem(id, updateData);
-        showToast(
-          locale === 'es' ? '✏️ Actualizado correctamente' : '✏️ Updated successfully',
-          'success'
-        );
-      } else {
-        await addItem(data as WatchItem);
-        showToast(
-          locale === 'es'
-            ? `🎬 "${data.title}" añadido a la lista`
-            : `🎬 "${data.title}" added to the list`,
-          'success'
-        );
-      }
+      // Never let the spinner hang forever waiting for the server.
+      await Promise.race([
+        writePromise,
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('SAVE_TIMEOUT')), 8000)
+        ),
+      ]);
+      showToast(
+        isUpdate
+          ? locale === 'es'
+            ? '✏️ Actualizado correctamente'
+            : '✏️ Updated successfully'
+          : locale === 'es'
+          ? `🎬 "${data.title}" añadido a la lista`
+          : `🎬 "${data.title}" added to the list`,
+        'success'
+      );
       handleCloseModal();
       return true;
     } catch (error) {
+      if (error instanceof Error && error.message === 'SAVE_TIMEOUT') {
+        // The write is stored locally and will sync when the connection
+        // recovers — unblock the user instead of leaving the spinner.
+        console.warn(
+          '[save] sin confirmación del servidor en 8s; se sincronizará en segundo plano'
+        );
+        showToast(
+          locale === 'es' ? '💾 Guardado. Sincronizando…' : '💾 Saved. Syncing…',
+          'success'
+        );
+        handleCloseModal();
+        return true;
+      }
       console.error('Error saving item:', error);
       showToast(
         locale === 'es'

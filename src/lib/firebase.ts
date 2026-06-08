@@ -17,12 +17,14 @@ const firebaseConfig = {
 // Initialize Firebase only once
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-// Auto-detect long polling: avoids writes hanging forever when the network
-// or proxy blocks Firestore's default WebChannel streaming transport.
+// Force long polling: some networks, proxies, browser extensions or ad
+// blockers break Firestore's default WebChannel streaming transport, which
+// makes writes hang forever (applied locally but never acknowledged by the
+// server). Long polling uses plain HTTP requests and is far more reliable.
 let db: Firestore;
 try {
   db = initializeFirestore(app, {
-    experimentalAutoDetectLongPolling: true,
+    experimentalForceLongPolling: true,
   });
 } catch {
   // Already initialized (e.g. hot reload) — reuse the existing instance.

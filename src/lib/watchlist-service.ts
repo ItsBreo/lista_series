@@ -87,11 +87,14 @@ export async function updateProgress(
 
 export async function updateMovieProgress(
   id: string,
-  minute: number
+  minute: number,
+  totalMinutes?: number
 ): Promise<void> {
+  const isCompleted =
+    totalMinutes !== undefined && totalMinutes > 0 && minute >= totalMinutes;
   await updateItem(id, {
     currentMinute: minute,
-    status: 'watching',
+    status: isCompleted ? 'completed' : 'watching',
   });
 }
 

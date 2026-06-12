@@ -708,6 +708,23 @@ body::before {
   transform: scale(0.92);
 }
 
+.quick-btn-complete {
+  width: auto;
+  padding: 0 10px;
+  margin-left: auto;
+  gap: 4px;
+  font-size: 0.75rem;
+  border-color: var(--status-completed);
+  color: var(--status-completed);
+  background: var(--status-completed-bg);
+}
+
+.quick-btn-complete:hover {
+  border-color: var(--status-completed);
+  color: #fff;
+  background: var(--status-completed);
+}
+
 /* ========================================
    Progress Bar
    ======================================== */

@@ -2,7 +2,7 @@
 
 import { WatchItem } from '@/lib/types';
 import { Locale, t, getGenreLabel, getStatusLabel, getTypeLabel } from '@/lib/i18n';
-import { updateProgress, updateMovieProgress } from '@/lib/watchlist-service';
+import { updateProgress, updateMovieProgress, markAsCompleted } from '@/lib/watchlist-service';
 import ProgressBar from './ProgressBar';
 
 interface WatchCardProps {
@@ -66,12 +66,16 @@ export default function WatchCard({ item, locale, onEdit, onDelete, onOpenDetail
 
   const handleMinuteIncrement = async () => {
     const newMin = Math.min((item.currentMinute || 0) + 5, item.totalMinutes || 9999);
-    await updateMovieProgress(item.id, newMin);
+    await updateMovieProgress(item.id, newMin, item.totalMinutes);
   };
 
   const handleMinuteDecrement = async () => {
     const newMin = Math.max(0, (item.currentMinute || 0) - 5);
-    await updateMovieProgress(item.id, newMin);
+    await updateMovieProgress(item.id, newMin, item.totalMinutes);
+  };
+
+  const handleMarkCompleted = async () => {
+    await markAsCompleted(item.id);
   };
 
   const renderRating = () => {
@@ -214,6 +218,14 @@ export default function WatchCard({ item, locale, onEdit, onDelete, onOpenDetail
                 </button>
               </>
             )}
+            <button
+              className="quick-btn quick-btn-complete"
+              onClick={handleMarkCompleted}
+              title={tr.markCompleted}
+              id={`btn-complete-${item.id}`}
+            >
+              ✓ {tr.completed}
+            </button>
           </div>
         )}
 
